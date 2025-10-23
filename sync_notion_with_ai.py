@@ -24,22 +24,8 @@ PAGE_ID_RE = re.compile(r"(?:notion\.so|notion\.site)/[^\s#?]*?([0-9a-fA-F]{32})
 
 # Load prefix-to-page mapping from config file
 def load_page_mapping():
-    """
-    Load the mapping of PR prefixes to Notion page IDs.
-    Expected format in page_mapping.json:
-    {
-        "feat": "page-id-1",
-        "bug": "page-id-2",
-        "docs": "page-id-3",
-        "default": "page-id-fallback"
-    }
-    """
-    try:
-        with open("page_mapping.json", "r") as f:
-            return json.load(f)
-    except FileNotFoundError:
-        print("Warning: page_mapping.json not found. Using empty mapping.")
-        return {}
+    with open("page_mapping.json", "r") as f:
+        return json.load(f)
 
 
 def load_pr():
@@ -60,16 +46,16 @@ def load_pr():
     }
 
 
-def extract_prefix_from_title(title: str) -> str:
+def extract_prefix_from_branch(branch: str) -> str:
     """
-    Extract prefix from PR title.
+    Extract prefix from branch name.
     Examples:
-      - "feat/hello_world: Add new feature" -> "feat"
-      - "bug/fix-login: Fix login issue" -> "bug"
-      - "Update README" -> None
+      - "feat/hello_world" -> "feat"
+      - "bug/fix-login" -> "bug"
+      - "main" -> None
     """
-    # Match pattern: prefix/anything or prefix: or prefix-
-    match = re.match(r"^([a-zA-Z0-9_-]+)[/:_-]", title)
+    # Match pattern: prefix/anything
+    match = re.match(r"^([a-zA-Z0-9_-]+)/", branch)
     if match:
         return match.group(1).lower()
     return None
@@ -174,17 +160,17 @@ TASK:
 Synthesize and update the Notion page content by intelligently merging the PR information with the existing content. 
 
 Guidelines:
-1. If the page is empty, create a well-structured specification document based on the PR information
-2. If the page has existing content, integrate the PR updates appropriately:
-   - Update relevant sections if the PR modifies existing features
-   - Add new sections for new features or components
+Integrate the PR updates appropriately:
+   - Update relevant sections if the PR modifies existing components
+   - Add new sections for new components
    - Maintain the overall document structure and flow
 3. Include a "Recent Updates" or "Change Log" section that mentions this PR
 4. Use clear markdown formatting with proper headings, lists, and emphasis
 5. Be concise but comprehensive
 6. Don't duplicate information unnecessarily
+7. Link to the PR in the main body of the page if it would provide useful context
 
-Return ONLY the updated page content in markdown format, ready to be converted to Notion blocks."""
+Return ONLY the updated page content in Notionmarkdown format"""
 
     response = openai_client.chat.completions.create(
         model="gpt-4o",
@@ -403,10 +389,11 @@ def main():
     # Load PR information
     pr_info = load_pr()
     print(f"Processing PR #{pr_info['number']}: {pr_info['title']}")
+    print(f"Branch: {pr_info['branch']}")
     
-    # Extract prefix and get target page ID
-    prefix = extract_prefix_from_title(pr_info['title'])
-    print(f"Extracted prefix: {prefix or '(none)'}")
+    # Extract prefix from branch name and get target page ID
+    prefix = extract_prefix_from_branch(pr_info['branch'])
+    print(f"Extracted prefix from branch: {prefix or '(none)'}")
     
     page_id = get_page_id_for_prefix(prefix, page_mapping)
     page_id = format_page_id(page_id)
