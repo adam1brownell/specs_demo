@@ -1,0 +1,33 @@
+name: Update Notion on PR
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  update-notion:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Update Notion page with AI synthesis
+        env:
+          NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
+          TRM_OPEN_AI_KEY: ${{ secrets.TRM_OPEN_AI_KEY }}
+          NOTION_PR_DATABASE_ID: ${{ secrets.NOTION_PR_DATABASE_ID }}
+          GITHUB_EVENT_PATH: ${{ github.event_path }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python sync_notion_with_ai.py
+
