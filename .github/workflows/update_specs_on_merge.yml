@@ -1,11 +1,12 @@
-name: Update Notion on PR
+name: Update Specs on PR Merge
 
 on:
   pull_request:
-    types: [opened, edited, synchronize, reopened]
+    types: [closed]
 
 jobs:
   update-notion:
+    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     
     steps:
@@ -25,7 +26,6 @@ jobs:
         env:
           NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
           TRM_OPEN_AI_KEY: ${{ secrets.TRM_OPEN_AI_KEY }}
-          NOTION_PR_DATABASE_ID: ${{ secrets.NOTION_PR_DATABASE_ID }}
           GITHUB_EVENT_PATH: ${{ github.event_path }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
